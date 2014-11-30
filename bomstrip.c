@@ -7,28 +7,29 @@
 
 void usage(char *prog)
 {
-  fprintf(stderr, "usage: %s\n", prog);
+  fprintf(stderr, "usage: %s \t\tRemove byte order mark at the *BEGINNING* of the UTF-8 input.\n", prog);
+  fprintf(stderr, "   or: %s -a\tRemove *ALL* byte order mark of the UTF-8 input.\n", prog);
   exit(1);
 }
 
 unsigned short u_getc(FILE *stream, char *bytes) {
   /* mask values for bit pattern of first byte in multi-byte
-     UTF-8 sequences: 
-     192 - 110xxxxx - for U+0080 to U+07FF 
-     224 - 1110xxxx - for U+0800 to U+FFFF 
+     UTF-8 sequences:
+     192 - 110xxxxx - for U+0080 to U+07FF
+     224 - 1110xxxx - for U+0800 to U+FFFF
      240 - 11110xxx - for U+010000 to U+1FFFFF */
-  static unsigned short mask[] = {192, 224, 240}; 
+  static unsigned short mask[] = {192, 224, 240};
 
-  unsigned short i, j; 
+  unsigned short i, j;
 
   /* initialize buffer */
-  memset(bytes, 0, U_MAX_BYTES + 1); 
+  memset(bytes, 0, U_MAX_BYTES + 1);
 
   /* read first byte into buffer */
   bytes[0] = getc(stream);
-  if (bytes[0] == EOF) { 
-    return 0; 
-  } 
+  if (bytes[0] == EOF) {
+    return 0;
+  }
 
   /* check how many more bytes need to be read for
      character */
@@ -67,51 +68,24 @@ int main(int argc, char *argv[]) {
 
   /* allocating +1 for null gives ability to print character
      as string */
-  char *bytes = (char*)calloc(U_MAX_BYTES + 1, sizeof(char)); 
+  char *bytes = (char*)calloc(U_MAX_BYTES + 1, sizeof(char));
 
   /* read and print until end of file */
   while (u_getc(stdin, bytes)) {
-    if (REMOVE_ALL == 1)
+    if ((REMOVE_ALL == 1) && (strcmp(bytes, utf8bom) == 0))
     {
-      if (strcmp(bytes, utf8bom) != 0)
-        printf("%s", bytes);
+      continue;
+    }
+    else if ((n == 0) && (strcmp(bytes, utf8bom) == 0))
+    {
+      continue;
     }
     else
-    {
-      /* TODO: Use another way to trip BOM at the beginning of file */
-      if (n == 0)
-      {
-        if (strcmp(bytes, utf8bom) != 0)
-          printf("%s", bytes);
-      }
-      else
-        printf("%s", bytes);
-    }
-    n++;
+      printf("%s", bytes);
+    /* If we are at the head of the file */
+    if (n < 1)
+      n++;
   }
 
   return 0;
 }
-// int
-// main(int argc, char *argv[])
-// {
-//   size_t nread;
-//   char buf[65536];
-//   char *utf8bom = "\xef\xbb\xbf";
-// 
-//   if (argc > 1)
-//     usage(argv[0]);
-// 
-//   nread = fread(buf, 1, strlen(utf8bom), stdin);
-//   if (nread == 0)
-//     return 0;
-//   if (strcmp(buf, utf8bom) != 0)
-//     fwrite(buf, 1, nread, stdout);
-//   for (;;) {
-//     nread = fread(buf, 1, sizeof buf, stdin);
-//     if (nread == 0)
-//       return 0;
-//     fwrite(buf, 1, nread, stdout);
-//   }
-//   return 0;
-// }
